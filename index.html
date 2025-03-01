@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Gift</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background: url('Photo1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 90vw;
+            max-width: 400px;
+        }
+        .card {
+            width: 100px;
+            height: 140px;
+            background: url('Cardw2.png') no-repeat center center;
+            background-size: cover;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.5s;
+        }
+        .card.open {
+            transform: rotateY(180deg);
+        }
+        .gift-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+        }
+        .attempts-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .attempts {
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 10px;
+            background-color: white;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid">
+        <div class="card" data-index="0"></div>
+        <div class="card" data-index="1"></div>
+        <div class="card" data-index="2"></div>
+        <div class="card" data-index="3"></div>
+        <div class="card" data-index="4"></div>
+        <div class="card" data-index="5"></div>
+        <div class="card" data-index="6"></div>
+        <div class="card" data-index="7"></div>
+        <div class="card" data-index="8"></div>
+    </div>
+    <div class="attempts-container">
+        <div class="attempts" id="attempts">3/3</div>
+    </div>
+    <div class="gift-popup" id="gift-popup"></div>
+
+    <script>
+        const maxAttempts = 3;
+        let attemptsLeft = localStorage.getItem('attemptsLeft') !== null 
+            ? parseInt(localStorage.getItem('attemptsLeft'), 10) 
+            : maxAttempts;
+        const attemptsDisplay = document.getElementById("attempts");
+        const cards = document.querySelectorAll(".card");
+        const giftPopup = document.getElementById("gift-popup");
+
+        const expensiveGifts = ["🎁 Premium Telegram", "💎 300 Stars", "🌟 Exclusive Sticker"];
+        const normalGifts = ["🎉 10 Stars", "🎊 20 Stars", "📜 Cool Sticker", "🎭 Emoji Pack", "📢 Channel Boost"];
+
+        function getRandomGift() {
+            return Math.random() < 0.3 
+                ? expensiveGifts[Math.floor(Math.random() * expensiveGifts.length)]
+                : normalGifts[Math.floor(Math.random() * normalGifts.length)];
+        }
+
+        function getGiftPrice(gift) {
+            if (expensiveGifts.includes(gift)) return Math.floor(Math.random() * 100) + 200;
+            return Math.floor(Math.random() * 10) + 10;
+        }
+
+        function showPayment(cardIndex, gift) {
+            const price = getGiftPrice(1);
+
+            Telegram.WebApp.showInvoice({
+                slug: "gift_payment",
+                is_test: true,
+                payload: `gift_${cardIndex}`,
+                description: `Оплата за подарок: ${gift}`,
+                prices: [{ label: "Lucky Gift", amount: price * 100 }],
+                start_param: "lucky_gift"
+            }, function (status) {
+                if (status === "paid") {
+                    openCard(cardIndex, gift);
+                }
+            });
+        }
+
+        function openCard(cardIndex, gift) {
+            const card = document.querySelector(`.card[data-index="${cardIndex}"]`);
+            card.classList.add("open");
+
+            setTimeout(() => {
+                giftPopup.textContent = `Вы выиграли: ${gift}`;
+                giftPopup.style.display = "block";
+
+                setTimeout(() => {
+                    giftPopup.style.display = "none";
+                }, 2000);
+            }, 500);
+        }
+
+        cards.forEach(card => {
+            card.addEventListener("click", () => {
+                if (attemptsLeft > 0) {
+                    const cardIndex = card.getAttribute("data-index");
+                    const gift = getRandomGift();
+                    showPayment(cardIndex, gift);
+                }
+            });
+        });
+
+        attemptsDisplay.textContent = `${attemptsLeft}/3`;
+    </script>
+</body>
+</html>
